@@ -1,0 +1,37 @@
+# Example path configuration for DIM-IAG-RS.
+# Please modify all paths according to your local environment.
+
+project_root: /path/to/DIM-IAG-RS
+
+weights:
+  dim_iag_rs: weights/dim_iag_rs_best.pth
+
+datasets:
+  codan:
+    test_night: /path/to/CODaN/test_night
+    enhanced_test_night: /path/to/CODaN/test_night_dim_iag_rs
+
+  acdc:
+    val_images: /path/to/ACDC/images/val
+    val_labels: /path/to/ACDC/labels/val
+    enhanced_val_images: /path/to/ACDC/images/val_dim_iag_rs
+
+  lod:
+    root: /path/to/LOD_exp
+    raw_images: /path/to/LOD_exp/images/raw
+    raw_labels: /path/to/LOD_exp/labels/raw
+    enhanced_images: /path/to/LOD_exp/images/dim_iag_rs
+    enhanced_labels: /path/to/LOD_exp/labels/dim_iag_rs
+
+  lis:
+    root: /path/to/LIS/yolo_lis_coco80_fixed
+    raw_images: /path/to/LIS/yolo_lis_coco80_fixed/images/val
+    raw_labels: /path/to/LIS/yolo_lis_coco80_fixed/labels/val
+    enhanced_images: /path/to/LIS/yolo_lis_coco80_fixed/images/val_dim_iag_rs
+    enhanced_labels: /path/to/LIS/yolo_lis_coco80_fixed/labels/val_dim_iag_rs
+
+evaluation:
+  codan_classifier_checkpoint: /path/to/CODaN/resnet18_baseline.pth.tar
+  acdc_segmentation_checkpoint: /path/to/segmentation/checkpoint.pth
+  lod_detector_checkpoint: /path/to/yolo11l.pt
+  lis_segmenter_checkpoint: /path/to/yolo11l-seg.pt

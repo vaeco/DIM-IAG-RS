@@ -1,0 +1,27 @@
+dataset: CODaN
+task: image_classification
+
+data:
+  test_night: /path/to/CODaN/test_night
+  enhanced_test_night: /path/to/CODaN/test_night_dim_iag_rs
+
+model:
+  classifier: ResNet18
+  checkpoint: /path/to/CODaN/resnet18_baseline.pth.tar
+
+classes:
+  - Bicycle
+  - Car
+  - Motorbike
+  - Bus
+  - Boat
+  - Cat
+  - Dog
+  - Bottle
+  - Cup
+  - Chair
+
+evaluation:
+  metric:
+    - Top-1 Accuracy
+    - Top-5 Accuracy

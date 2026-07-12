@@ -1,0 +1,25 @@
+dataset: LOD
+task: object_detection
+format: YOLO_detection
+
+data:
+  raw_images: /path/to/LOD_exp/images/raw
+  raw_labels: /path/to/LOD_exp/labels/raw
+  enhanced_images: /path/to/LOD_exp/images/dim_iag_rs
+  enhanced_labels: /path/to/LOD_exp/labels/dim_iag_rs
+
+enhancement:
+  method: DIM-IAG-RS
+  checkpoint: weights/dim_iag_rs_best.pth
+  output_dir: /path/to/LOD_exp/images/dim_iag_rs
+
+evaluation:
+  detector: YOLO
+  metric:
+    - Precision
+    - Recall
+    - mAP50
+    - mAP50-95
+
+classes:
+  format: COCO-80 class indices

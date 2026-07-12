@@ -1,0 +1,21 @@
+dataset: ACDC
+task: semantic_segmentation
+
+data:
+  val_images: /path/to/ACDC/images/val
+  val_labels: /path/to/ACDC/labels/val
+  enhanced_val_images: /path/to/ACDC/images/val_dim_iag_rs
+
+enhancement:
+  method: DIM-IAG-RS
+  checkpoint: weights/dim_iag_rs_best.pth
+  output_dir: /path/to/ACDC/images/val_dim_iag_rs
+
+evaluation:
+  metric:
+    - mIoU
+    - mAcc
+    - aAcc
+
+notes:
+  The enhanced images should preserve the original ACDC validation image structure.

@@ -1,0 +1,29 @@
+dataset: LIS
+task: instance_segmentation
+format: YOLO_segmentation
+
+data:
+  raw_images: /path/to/LIS/yolo_lis_coco80_fixed/images/val
+  raw_labels: /path/to/LIS/yolo_lis_coco80_fixed/labels/val
+  enhanced_images: /path/to/LIS/yolo_lis_coco80_fixed/images/val_dim_iag_rs
+  enhanced_labels: /path/to/LIS/yolo_lis_coco80_fixed/labels/val_dim_iag_rs
+
+enhancement:
+  method: DIM-IAG-RS
+  checkpoint: weights/dim_iag_rs_best.pth
+  output_dir: /path/to/LIS/yolo_lis_coco80_fixed/images/val_dim_iag_rs
+
+evaluation:
+  segmenter: YOLO-Seg
+  metric:
+    - Box Precision
+    - Box Recall
+    - Box mAP50
+    - Box mAP50-95
+    - Mask Precision
+    - Mask Recall
+    - Mask mAP50
+    - Mask mAP50-95
+
+classes:
+  format: COCO-80 class indices
