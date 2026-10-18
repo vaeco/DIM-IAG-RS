@@ -153,7 +153,7 @@ def main():
     device = torch.device(requested_device)
 
     model = DIM_WRR_IAG(base_alpha=args.base_alpha, init_gate=args.init_gate).to(device).eval()
-    load_iag_checkpoint(model, args.ckpt, map_location=device)
+    load_iag_checkpoint(model, args.ckpt, map_location=device, strict=True)
 
     input_dir = Path(args.input_dir)
     output_dir = Path(args.output_dir)

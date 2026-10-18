@@ -9,6 +9,6 @@ def main():
     a=p.parse_args()
     if not Path(a.ckpt).is_file():raise SystemExit('Missing original trained single-gate checkpoint; not a reproduced release.')
     from dim_iag_rs.dim_wrr_iag import DIM_WRR_IAG,load_iag_checkpoint
-    load_iag_checkpoint(DIM_WRR_IAG(),a.ckpt,map_location='cpu')
+    load_iag_checkpoint(DIM_WRR_IAG(),a.ckpt,map_location='cpu',strict=True)
     print('Checkpoint load completed; this is not downstream performance verification.')
 if __name__=='__main__':main()
