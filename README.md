@@ -1,204 +1,37 @@
-# DIM-IAG-RS
+# DIM-IAG-RS 单门控低光图像增强
 
-Release implementation for **Deep Intensity Mapping with Risk-Aware Residual Suppression for Low-Light Image Enhancement in High-Level Vision Tasks**.
-
-This release uses a **shared DIM-WRR backbone**, two complementary illumination-aware gate experts, and a continuous image-level router:
-
-- **Conservative gate expert**: limits unnecessary enhancement for moderately illuminated or exposure-sensitive images.
-- **Brightness-oriented gate expert**: increases enhancement strength for severely under-exposed images.
-- **Risk-aware dual-gate router**: mixes the two experts according to image-level under-exposure severity, over-exposure risk, and noise risk.
-
-The default release parameters are the final validated router candidate:
+面向检测和分割的任务导向增强项目。保留 DIM-WRR、单个 IAG 门控及推理阶段 RS 残差调节。
 
 ```text
-base_alpha   = 0.60
-router_center = 0.81
-router_width  = 0.02
-rho_max       = 0.95
+X → DIM-WRR → Y_base
+X、Y_base、光照/噪声/边缘代理 → IAG → G
+噪声、过曝、欠曝 → RS → S
+Y = clamp(X + G*S*(Y_base-X), 0, 1)
 ```
 
-## Final Formulation
+## 安装与运行
 
-The shared DIM-WRR backbone first predicts a base enhanced image:
-
-```text
-Y_base = F_DIM-WRR(X)
-R = Y_base - X
-```
-
-The conservative and brightness-oriented experts produce effective residual gates:
-
-```text
-E_c = G_c * S_c
-E_b = G_b * S_b
-```
-
-The image-level router predicts a continuous coefficient `rho`:
-
-```text
-rho = rho_max * sigmoid((u - router_center) / router_width) * risk_safety
-```
-
-where `u` is the image-level under-exposure severity. The final effective gate and enhanced image are:
-
-```text
-E = (1 - rho) * E_c + rho * E_b
-Y = clamp(X + E * R, 0, 1)
-```
-
-No dataset name is used by the router. The same model, checkpoints, and parameters are applied to CODaN, LOD, LIS, and other inputs.
-
-## Repository Structure
-
-```text
-DIM-IAG-RS/
-├── configs/
-├── datasets/
-├── dim_iag_rs/
-├── docs/
-├── examples/
-├── scripts/
-│   ├── enhance_dim_iag_rs.py      # final Dual-Gate Router inference
-│   ├── enhance_single_gate.py     # legacy single-gate inference
-│   ├── train_bright_gate.py       # brightness-oriented expert training
-│   └── validate_release.py        # checkpoint integrity validation
-├── tests/
-├── tools/
-├── weights/
-├── README.md
-├── LICENSE
-└── requirements.txt
-```
-
-## Installation
+先为设备安装匹配的 torch/torchvision，再运行 `pip install -r requirements.txt`。
+原始训练权重未包含，需自行放置；没有权重时不要把随机输出当作增强效果。
 
 ```bash
-pip install -r requirements.txt
+python scripts/enhance_single_gate.py --input_dir /path/to/images --output_dir outputs/enhanced --ckpt weights/dim_iag_rs_best.pth --device cuda:0 --preset medium --save_maps
 ```
 
-The code is intended for a CUDA-enabled PyTorch environment. CPU inference is supported but slower.
+## 历史论文结果
 
-## Model Weights
+论文配置的 LOD 检测 mAP50–95 是 0.390→0.502，LIS 掩码是 0.303→0.384。原检查点与完整日志缺失，不能保证当前源码封装与历史配置完全一致，本轮未复跑。详见项目档案中的版本说明。
 
-Model weights are not distributed in this source archive. Place the two checkpoints at:
+## 来源
 
-```text
-weights/dim_iag_rs_best.pth
-weights/dim_iag_rs_bright_gate_best.pth
-```
+保留原源码 MIT License（含原版权声明）；代码继承与本次路径/错误处理整理不构成对上游模块原创性的声明。论文未发表，以个人研究项目呈现。
 
-The first file is the conservative Release checkpoint. The second file is the retrained brightness-oriented gate checkpoint.
 
-Run the release check after copying the weights:
+## 阅读与面试
 
-```bash
-python scripts/validate_release.py
-```
+- [项目档案](docs/project_guide.md)
+- [核心问题与递进追问](docs/interview_qa.md)
 
-## Final Image Enhancement
+## 本次整理的验证边界
 
-```bash
-python scripts/enhance_dim_iag_rs.py \
-  --input_dir /path/to/input_images \
-  --output_dir /path/to/output_images \
-  --conservative_ckpt weights/dim_iag_rs_best.pth \
-  --bright_ckpt weights/dim_iag_rs_bright_gate_best.pth \
-  --device cuda:0 \
-  --print_freq 100
-```
-
-The final router parameters are already the script defaults. They can also be written explicitly:
-
-```bash
-python scripts/enhance_dim_iag_rs.py \
-  --input_dir /path/to/input_images \
-  --output_dir /path/to/output_images \
-  --conservative_ckpt weights/dim_iag_rs_best.pth \
-  --bright_ckpt weights/dim_iag_rs_bright_gate_best.pth \
-  --base_alpha 0.6 \
-  --router_center 0.81 \
-  --router_width 0.02 \
-  --rho_max 0.95 \
-  --device cuda:0
-```
-
-The script preserves nested class folders and prints:
-
-```text
-num_images
-FINAL STATS
-rho mean avg
-effective gate mean avg
-Done.
-```
-
-These fields should be checked before downstream evaluation.
-
-## Bright-Gate Training
-
-The brightness-oriented expert is trained from the conservative full IAG checkpoint while the DIM-WRR backbone remains frozen by default:
-
-```bash
-python scripts/train_bright_gate.py \
-  --input_dir /path/to/paired/input \
-  --target_dir /path/to/paired/target \
-  --ckpt weights/dim_iag_rs_best.pth \
-  --load_mode iag \
-  --save_dir weights/bright_gate_training \
-  --epochs 8 \
-  --batch_size 4 \
-  --crop_size 384 \
-  --amp \
-  --print_freq 20
-```
-
-After training, copy the best checkpoint to:
-
-```bash
-cp weights/bright_gate_training/best.pth \
-   weights/dim_iag_rs_bright_gate_best.pth
-```
-
-## Legacy Single-Gate Inference
-
-The original single-gate Release inference is retained for reproducibility:
-
-```bash
-python scripts/enhance_single_gate.py \
-  --input_dir /path/to/input_images \
-  --output_dir /path/to/output_images \
-  --ckpt weights/dim_iag_rs_best.pth \
-  --base_alpha 0.6 \
-  --preset medium \
-  --device cuda:0
-```
-
-## Evaluation
-
-Evaluation utilities are provided under `tools/eval/`.
-
-The downstream tasks are:
-
-| Dataset | Task | Metrics |
-|---|---|---|
-| CODaN | Image classification | Top-1, Top-5 Accuracy |
-| ACDC | Semantic segmentation | mIoU, mAcc, aAcc |
-| LOD | Object detection | Precision, Recall, mAP50, mAP50-95 |
-| LIS | Instance segmentation | Box and Mask metrics |
-
-See `docs/results_summary.md` for the current validated records and `docs/server_deployment.md` for the minimal replacement procedure used by the server release.
-
-## Citation
-
-```bibtex
-@article{dim_iag_rs,
-  title   = {Deep Intensity Mapping with Risk-Aware Residual Suppression for Low-Light Image Enhancement in High-Level Vision Tasks},
-  author  = {Anonymous},
-  journal = {To be updated},
-  year    = {2026}
-}
-```
-
-## License
-
-This project is released under the license in `LICENSE`.
+采用历史材料，不重跑训练。Python 语法检查不能证明模型效果或历史指标已复现。缺失资源明确保留；源码整理和历史实验结果分别记录。

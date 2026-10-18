@@ -145,7 +145,12 @@ def main():
         args.over_th = cfg["over_th"]
         args.under_th = cfg["under_th"]
 
-    device = torch.device(args.device if torch.cuda.is_available() else "cpu")
+    requested_device = args.device
+    if requested_device.startswith("cuda") and not torch.cuda.is_available():
+        raise RuntimeError("CUDA was requested but is unavailable; use --device cpu explicitly.")
+    if not Path(args.ckpt).is_file():
+        raise FileNotFoundError(f"Missing trained single-gate checkpoint: {args.ckpt}")
+    device = torch.device(requested_device)
 
     model = DIM_WRR_IAG(base_alpha=args.base_alpha, init_gate=args.init_gate).to(device).eval()
     load_iag_checkpoint(model, args.ckpt, map_location=device)
@@ -154,6 +159,10 @@ def main():
     output_dir = Path(args.output_dir)
 
     files = list_images(input_dir)
+    if not files:
+        raise ValueError(f"No supported images found in {input_dir}")
+    if args.print_freq < 1:
+        raise ValueError("--print_freq must be positive")
     if args.max_images and args.max_images > 0:
         files = files[: args.max_images]
 
