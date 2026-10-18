@@ -1,37 +1,51 @@
-# DIM-IAG-RS 单门控低光图像增强
+# DIM-IAG-RS
 
-面向检测和分割的任务导向增强项目。保留 DIM-WRR、单个 IAG 门控及推理阶段 RS 残差调节。
+面向下游视觉任务的单门控低光图像增强实现。结合强度映射、Haar小波残差、光照与噪声感知门控，以及推理阶段的风险残差调节，在提亮、结构保留和噪声抑制之间控制增强幅度。
+
+## 方法
 
 ```text
 X → DIM-WRR → Y_base
-X、Y_base、光照/噪声/边缘代理 → IAG → G
-噪声、过曝、欠曝 → RS → S
-Y = clamp(X + G*S*(Y_base-X), 0, 1)
+X、Y_base与光照/噪声/边缘信息 → IAG → G
+噪声、过曝、欠曝风险 → RS → S
+Y = clamp(X + G * S * (Y_base - X), 0, 1)
 ```
 
-## 安装与运行
+`G` 是学习得到的单通道空间门控，`S` 是推理脚本计算的风险调节图。实现细节见 [方法与代码结构](docs/project_guide.md)。
 
-先为设备安装匹配的 torch/torchvision，再运行 `pip install -r requirements.txt`。
-原始训练权重未包含，需自行放置；没有权重时不要把随机输出当作增强效果。
+## 安装与推理
+
+先安装适配设备的PyTorch和torchvision，然后执行：
 
 ```bash
+python -m pip install -r requirements.txt
 python scripts/enhance_single_gate.py --input_dir /path/to/images --output_dir outputs/enhanced --ckpt weights/dim_iag_rs_best.pth --device cuda:0 --preset medium --save_maps
 ```
 
-## 历史论文结果
+原训练检查点未随仓库分发，运行需要兼容的单门控权重。使用 `--device cpu` 可显式选择CPU。`--save_maps` 保存门控与风险图，参数说明见 `--help`。
 
-论文配置的 LOD 检测 mAP50–95 是 0.390→0.502，LIS 掩码是 0.303→0.384。原检查点与完整日志缺失，不能保证当前源码封装与历史配置完全一致，本轮未复跑。详见项目档案中的版本说明。
+## 实验结果
 
-## 来源
+| 论文配置 | LOD 检测mAP50-95 | LIS 掩码mAP50-95 |
+|---|---:|---:|
+| 未增强基线 | 0.390 | 0.303 |
+| DIM-IAG-RS | 0.502 | 0.384 |
 
-保留原源码 MIT License（含原版权声明）；代码继承与本次路径/错误处理整理不构成对上游模块原创性的声明。论文未发表，以个人研究项目呈现。
+对应绝对差为11.2和8.1个百分点。结果来自研究稿的实验配置；原始权重与完整日志未分发，当前代码与该配置尚未完成一致性验证。详细指标与适用范围见 [实验说明](docs/experiments.md)。
 
+## 目录
 
-## 阅读与面试
+- `dim_iag_rs/` 基础增强、小波残差和单门控模型
+- `scripts/enhance_single_gate.py` 推理与风险调节
+- `scripts/validate_release.py` 检查点严格加载检查
+- `configs/` 数据集与评测配置示例
+- `tools/eval/` 下游评价工具，见 [评测说明](tools/eval/README.md)
+- [权重说明](weights/README.md) · [数据说明](datasets/README.md)
 
-- [项目档案](docs/project_guide.md)
-- [核心问题与递进追问](docs/interview_qa.md)
+## 限制
 
-## 本次整理的验证边界
+增强收益依赖数据域、固定下游模型及评测设置。风险图属于估计而非物理真值，强抑制可能保留欠曝，强增强可能放大噪声。检查点加载或语法检查不等于下游指标复现。
 
-采用历史材料，不重跑训练。Python 语法检查不能证明模型效果或历史指标已复现。缺失资源明确保留；源码整理和历史实验结果分别记录。
+## 许可证
+
+使用 [MIT License](LICENSE)，保留原始版权声明与上游实现的授权信息。
